@@ -1,0 +1,12 @@
+# Python Virtual Environment
+drone_env/
+venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Logs & Data
+*.tlog
+*.rlog
+mav.parm
