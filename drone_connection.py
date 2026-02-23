@@ -1,30 +1,53 @@
-from pymavlink import mavutil
 import time
+import board
+import adafruit_vl53l4cd
+from pymavlink import mavutil
 
+# --- 1. INITIALIZE SENSOR ---
+i2c = board.I2C()
+vl53 = adafruit_vl53l4cd.VL53L4CD(i2c)
+vl53.inter_measurement = 0
+vl53.timing_budget = 50
+vl53.start_ranging()
+
+# --- 2. INITIALIZE MAVLINK ---
+# Change to '/dev/ttyACM0' if using a USB cable
 connection_string = '/dev/ttyAMA0' 
-baud_rate = 57600  # Default for Telem ports; USB is usually 115200
-
-print(f"Connecting to Pixhawk on {connection_string}...")
-
-# 2. Establish connection
-# autoreconnect=True helps if the cable is loose
-master = mavutil.mavlink_connection(connection_string, baud=baud_rate)
-
-# 3. Wait for the first heartbeat 
-# This confirms the Pixhawk is actually talking back
-print("Waiting for heartbeat...")
+master = mavutil.mavlink_connection(connection_string, baud=57600)
+print("Waiting for Pixhawk heartbeat...")
 master.wait_heartbeat()
+print("Heartbeat received! Sending laser data...")
 
-print(f"Heartbeat received from system (ID {master.target_system}) component (ID {master.target_component})")
+def send_distance_message(dist_cm):
+    """
+    Sends the DISTANCE_SENSOR message to ArduPilot.
+    dist_cm: distance in centimeters
+    """
+    # MAVLink uses millimeters for distance
+    dist_mm = int(dist_cm * 10)
+    
+    master.mav.distance_sensor_send(
+        0,          # time_boot_ms (ignored if 0)
+        10,         # min_distance (cm)
+        130,        # max_distance (cm) - VL53L4CD max is ~1.3m
+        dist_mm,    # current_distance (mm)
+        0,          # type (0 = Laser)
+        1,          # id (sensor ID)
+        mavutil.mavlink.MAV_SENSOR_ROTATION_PITCH_270, # orientation (facing down)
+        0           # covariance
+    )
 
-# 4. Simple loop to monitor the connection
 try:
     while True:
-        # Check for any incoming messages
-        msg = master.recv_match(blocking=True, timeout=1.0)
-        if msg:
-            if msg.get_type() == 'HEARTBEAT':
-                print("Link is alive...")
-        time.sleep(0.1)
+        if vl53.data_ready:
+            distance = vl53.distance
+            print(f"Distance: {distance:.2f} cm")
+            
+            # Send to Pixhawk
+            send_distance_message(distance)
+            
+            vl53.clear_interrupt()
+        
+        time.sleep(0.05) # 20Hz update rate
 except KeyboardInterrupt:
-    print("Closing connection.")
+    print("Stopping bridge...")

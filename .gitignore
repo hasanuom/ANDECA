@@ -10,3 +10,4 @@ __pycache__/
 *.tlog
 *.rlog
 mav.parm
+mav.tlog.raw
