@@ -15,14 +15,13 @@ gpiod==2.4.0
 lgpio==0.2.2.0
 lxml==6.0.2
 MAVProxy==1.8.74
-numpy==2.4.2
+numpy<2
 pyftdi==0.57.1
 pymavlink==2.4.49
 pynmeagps==1.1.0
 pyserial==3.5
 pyusb==1.3.1
 rpi-lgpio==0.6
-RPi.GPIO==0.7.1
 rpi_ws281x==5.0.0
 sysv_ipc==1.2.0
 typing_extensions==4.15.0
