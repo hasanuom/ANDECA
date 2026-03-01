@@ -13,7 +13,7 @@ The Pi must be configured for UART communication and requires specific build too
 ```bash
 # Update system and install Python headers/tools
 sudo apt update && sudo apt upgrade -y
-sudo apt install python3-dev python3-pip python3-venv libxml2-dev libxslt-dev -y
+sudo apt install python3-dev python3-pip python3-venv libxml2-dev libxslt-dev swig liblgpio-dev -y
 
 # Remove ModemManager to prevent serial port interference
 sudo apt purge modemmanager -y
