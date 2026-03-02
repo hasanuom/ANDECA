@@ -28,14 +28,43 @@ def parse_packet(pkt: Packet) -> Any:
         ids.PAC_ID_SPECTRUM_RX,
         ids.PAC_ID_SPECTRUM_TXI,
     ):
-        # payload is a sequence of big‑endian float32 values
-        floats: List[float] = []
-        for i in range(0, len(pkt.payload), 4):
-            chunk = pkt.payload[i : i + 4]
-            if len(chunk) < 4:
-                break
-            floats.append(struct.unpack(">f", chunk)[0])
+        # TI DSP middle-endian format: each float is two 16-bit words with
+        # word order reversed. Swap the 16-bit words then unpack as big-endian floats.
+        data = pkt.payload
+        n_samples = len(data) // 4
+        bigendian = bytearray(0)
+        for i in range(0, len(data), 4):
+            lsword = data[i : i + 2]
+            word = data[i + 2 : i + 4] + lsword
+            bigendian += word
+        floats = list(struct.unpack(f">{n_samples}f", bytes(bigendian)))
         return floats
+
+    # harmonics packets: real/imag pairs as interleaved floats
+    if cmd in (
+        ids.PAC_ID_HARMONICS_CAL_OP,
+        ids.PAC_ID_HARMONICS_TRANS,
+        ids.PAC_ID_HARMONICS_RX,
+        ids.PAC_ID_HARMONICS_TXI,
+    ):
+        # TI DSP middle-endian format: each float is two 16-bit words with
+        # word order reversed. Swap the 16-bit words then unpack as big-endian floats.
+        data = pkt.payload
+        n_floats = len(data) // 4
+        bigendian = bytearray(0)
+        for i in range(0, len(data), 4):
+            lsword = data[i : i + 2]
+            word = data[i + 2 : i + 4] + lsword
+            bigendian += word
+        floats = list(struct.unpack(f">{n_floats}f", bytes(bigendian)))
+        
+        # Pair into (real, imag) complex tuples
+        harmonics = []
+        for i in range(0, len(floats), 2):
+            real = floats[i]
+            imag = floats[i + 1] if i + 1 < len(floats) else 0.0
+            harmonics.append((real, imag))
+        return harmonics
 
     # settings packets consist of integer fields; return raw list of words
     if cmd == ids.PAC_ID_SETTINGS:
