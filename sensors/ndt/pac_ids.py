@@ -6,35 +6,44 @@ long as host and device agree on the numbers.
 """
 
 # masks applied to command field
-GET_MASK  = 0x8000  # command | GET_MASK means "read"
-SET_MASK  = 0x0000  # command | SET_MASK means "write" (usually the same as
-                    # clear bit 15)
+# these match the C macros in pac_id.h
+GET_MASK  = 0xC000  # high two bits set indicates a "get" operation
+SET_MASK  = 0x8000  # high bit set indicates a "set" (write) operation
 
-# basic packet IDs (example values)
-PAC_ID_FW_VERS            = 0x0001
-PAC_ID_SETTINGS           = 0x0002
-PAC_ID_SETTINGS_STREAMING = 0x0003
-PAC_ID_TX_CONFIGURATION   = 0x0010
-PAC_ID_TX_ENABLE          = 0x0011
-PAC_ID_LOOP_CONTROL       = 0x0012
-PAC_ID_LOOP_CAL_VALS      = 0x0013
-PAC_ID_FERRITE_CAL_CONTROL= 0x0020
-PAC_ID_FERRITE_CAL_VALS   = 0x0021
-PAC_ID_ERROR              = 0x00FF
+# packet ID values copied from pac_id.h
+PAC_ID_HARMONICS_CAL_OP         = 0x0001
+PAC_ID_HARMONICS_TRANS          = 0x0002
+PAC_ID_HARMONICS_RX             = 0x0003
+PAC_ID_HARMONICS_TXI            = 0x0004
 
-# data acquisition packets
-PAC_ID_TIME_DOMAIN_RX     = 0x0100
-PAC_ID_TIME_DOMAIN_TXI    = 0x0101
-PAC_ID_TIME_DOMAIN_NULL   = 0x0102
-PAC_ID_TIME_DOMAIN_TX     = 0x0103
-PAC_ID_SPECTRUM_RX        = 0x0200
-PAC_ID_SPECTRUM_TXI       = 0x0201
+PAC_ID_TIME_DOMAIN_RX           = 0x0010
+PAC_ID_TIME_DOMAIN_TXI          = 0x0011
+PAC_ID_TIME_DOMAIN_NULL         = 0x0012
+PAC_ID_TIME_DOMAIN_TX           = 0x0013
 
-# streaming harmonic packets (sent periodically)
-PAC_ID_HARMONICS_CAL_OP   = 0x0300
-PAC_ID_HARMONICS_TRANS    = 0x0301
-PAC_ID_HARMONICS_RX       = 0x0302
-PAC_ID_HARMONICS_TXI      = 0x0303
+PAC_ID_SPECTRUM_RX              = 0x0020
+PAC_ID_SPECTRUM_TXI             = 0x0021
+
+PAC_ID_FW_VERS                  = 0x0080
+PAC_ID_SETTINGS                 = 0x0081
+PAC_ID_SETTINGS_STREAMING       = 0x0082
+
+PAC_ID_TX_CONFIGURATION         = 0x0084
+PAC_ID_TX_ENABLE                = 0x0085
+
+PAC_ID_LOOP_CAL_VALS            = 0x0086
+PAC_ID_LOOP_CONTROL             = 0x0087
+
+PAC_ID_FERRITE_CAL_VALS         = 0x0088
+PAC_ID_FERRITE_CAL_CONTROL      = 0x0089
+
+PAC_ID_SFR_VALS                 = 0x008A
+PAC_ID_SFR_CONTROL              = 0x008B
+
+PAC_ID_ERROR                    = 0x00E0
+
+# (values above already cover the acquisition and harmonic IDs.)
+# there is no need for duplicate entries; they're listed earlier.
 
 # additional IDs used by the firmware; add more as needed
 
