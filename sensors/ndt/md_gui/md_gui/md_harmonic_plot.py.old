@@ -1,0 +1,224 @@
+# from PyQt5 import QtWidgets, uic
+# from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph import PlotWidget, plot
+import pyqtgraph as pg
+import numpy as np
+import os
+import copy
+
+
+class MdHarmonicPlot(object):
+    '''
+    classdocsuiTransRxPlotWidget
+    '''
+
+    # def __init__(self,command, jobid, payload):
+    def __init__(self, plot_widget, title, n_harmonics, n_points):
+
+        self.plot_widget = plot_widget
+        self.n_harmonics = n_harmonics
+        self.n_points = n_points
+        self.harmonic_item = [None] * n_harmonics
+
+        self.enables = [False] * n_harmonics
+        self.names = [''] * n_harmonics
+
+        font_size = str(16)
+        plot_range = 1.0
+
+        self.plot_widget.setBackground('w')
+        self.plot_widget.setTitle(title, color='k', size=font_size)
+        self.plot_widget.setLabel('left', 'y-axis', color='k', size=font_size)
+        self.plot_widget.setLabel('bottom', 'x-axis', color='k', size=font_size)
+        self.plot_widget.setXRange(-plot_range, +plot_range, padding=0.1)
+        self.plot_widget.setYRange(-plot_range, +plot_range, padding=0.1)
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.5)
+        self.plot_widget.setAspectLocked()
+        self.plot_widget.showAxis('top')
+        self.plot_widget.showAxis('right')
+
+        self.plot_widget.addLine(x=0, pen='k')
+        self.plot_widget.addLine(y=0, pen='k')
+
+        self.legend = self.plot_widget.addLegend(size=None, offset=None, horSpacing=25, verSpacing=-2, pen=None,
+                                                 brush=None, labelTextColor=None)
+
+        # Draw coordinate circles
+        cir = np.logspace(-3, 3, 20)
+        for r in cir:
+            circle = pg.QtGui.QGraphicsEllipseItem(-r, -r, r * 2, r * 2)
+            circle.setPen(pg.mkPen('k'))
+            self.plot_widget.addItem(circle)
+
+        self.create_data_array()
+        self.create_mean_array()
+
+    def create_data_array(self):
+        self.data = [None] * self.n_harmonics
+        # index into data
+
+        for i in range(self.n_harmonics):
+            self.data[i] = np.zeros((2, self.n_points))
+
+        # reset point index
+        self.idx = 0
+
+    def create_mean_array(self):
+        self.mean = [None] * self.n_harmonics
+        # index into data
+
+        for i in range(self.n_harmonics):
+            self.mean[i] = np.zeros((2, 1))
+
+    def make_brush(self, colors):
+        base_color = copy.copy(colors)
+        brush = []
+
+        alpha_max = 255
+        alpha_min = 30
+        alpha = []
+        alpha_delta = (alpha_max - alpha_min) / self.n_points
+
+        for i in range(0, self.n_points, 1):
+            alpha.append(int(alpha_max - i * alpha_delta))
+
+        for i in range(self.n_points):
+            base_color[3] = alpha[i]
+            brush.append(pg.mkBrush(colors))
+
+        return brush
+
+    def addSpots(self, colors):
+
+        for i in range(self.n_harmonics):
+            alpha_brush = self.make_brush(colors[i])
+            # print(alpha_brush)
+            # print(alpha_brush_color)
+            # print("alpha_brus_color[0] =" + str(alpha_brush_color[0]))
+            # create a scatter plot item for each harmonic
+            # self.harmonic_item[i] = pg.ScatterPlotItem(size=10, pen=pg.mkPen(None), brush=pg.mkBrush(colors[i]))
+            self.harmonic_item[i] = pg.ScatterPlotItem()
+
+            # create random data for now !
+            pos = np.random.normal(size=(2, self.n_points), scale=1e-5)
+
+            spots = [{'pos': pos[:, k], 'data': k} for k in range(self.n_points)]
+            # spots = [{'pos': pos[:,k], 'data': k, 'brush': pg.mkBrush(colors[i])} for k in range(self.n_points)]
+
+            # self.harmonic_item[i].addPoints(spots)
+            self.harmonic_item[i].setData(spots)
+
+            self.harmonic_item[i].setBrush(pg.mkBrush(colors[i]), update=True)
+            # self.harmonic_item[i].setBrush(alpha_brush, update=True)
+
+            # setting the brushes here works but when the data is updated it seems to remove any alpha value!?
+            # self.harmonic_item[i].setBrush(alpha_brush)
+            self.plot_widget.addItem(self.harmonic_item[i])
+
+        # test
+        # self.make_brush(0, colors)
+
+    def zero_points(self):
+
+        z = np.zeros((2, self.n_points))
+        # print(z)
+
+        for i in range(self.n_harmonics):
+            self.harmonic_item[i].setData(pos=z)
+
+    def update_names(self, names):
+        self.names = names
+
+    def update_series_visibility(self, enables):
+
+        # enables should be a list of booleans
+        # print(enables)
+        self.enables = enables
+
+        self.legend.clear()
+
+        for i in range(len(self.harmonic_item)):
+            self.plot_widget.removeItem(self.harmonic_item[i])
+
+        # enables should be len(self.harmonic_items long)
+        for i in range(len(enables)):
+            if enables[i]:
+                self.plot_widget.addItem(self.harmonic_item[i])
+                self.legend.addItem(self.harmonic_item[i], self.names[i])
+
+    def update_data(self, xdata, ydata):
+
+        # print(xdata)
+
+        data_idx = 0
+        data_idx_max = len(xdata)
+
+        for i in range(self.n_harmonics):
+            if self.enables[i]:
+                # self.harmonic_item[i].setData(data = (1.2, 1.0))
+                # print("input data  " + str(data[:, i]))
+                # print("saved data  " +  str(self.data[i][ : , self.idx] ))
+                if data_idx >= data_idx_max:
+                    break
+
+                # self._update_mean(i, xdata[data_idx], xdata[data_idx])
+
+                # self.data[i][ 0 , self.idx] = xdata[data_idx]
+                # self.data[i][ 1 , self.idx] = ydata[data_idx]
+                # self.harmonic_item[i].setData(x=self.data[i][0,:], y=self.data[i][1,:])
+
+                # self.data[i][ 0 , self.idx] = xdata[data_idx]
+                # self.data[i][ 1 , self.idx] = ydata[data_idx]
+                # self.harmonic_item[i].setData(x=xdata[data_idx][-self.n_points:], y=ydata[data_idx][-self.n_points:])
+                self.harmonic_item[i].setData(x=xdata[i][-self.n_points:], y=ydata[i][-self.n_points:])
+
+                # spots = self.harmonic_item[i].points()
+                # single_spot=spots[-1]
+                # print(single_spot.pos())
+                # print(single_spot.data())
+                # print(single_spot.index())
+                # print(single_spot.size())
+
+                data_idx += 1
+
+        self.point_increment()
+
+    def point_increment(self):
+        self.idx += 1
+        self.idx = self.idx % self.n_points
+
+    def _update_mean(self, idx, xval, yval):
+        self.mean[idx][0] = self.mean[idx][0] - self.data[idx][0][self.idx]
+        self.mean[idx][0] += xval
+
+        self.mean[idx][1] = self.mean[idx][1] - self.data[idx][1][self.idx]
+        self.mean[idx][1] += xval
+
+        print(self.mean[idx][0])
+
+    # def _init_trans_plot_ellipses(self, plot_widget, n_data_sets):
+    #     self.circ2 = np.empty([n_data_sets], dtype=object)
+    #     for i in range(n_data_sets):
+    #         self.circ2[i] = pg.QtGui.QGraphicsEllipseItem(-1, -1, 2, 2)
+    #         plot_widget.addItem(self.circ2[k])
+
+    # def _init_trans_plot_ellipses(self, plot_widget, n_data_sets):
+    #     self.circ2 = []
+    #     for i in range(n_data_sets):
+    #         self.circ2.append(pg.QtGui.QGraphicsEllipseItem(-1, -1, 2, 2))
+
+    #     def _ellipses_plot(self, data_x, data_y, transWidget):
+    #     mean_x = np.mean(data_x, axis=0)
+    #     sd_x = np.std(data_x, axis=0)
+    #     mean_y = np.mean(data_y, axis=0)
+    #     sd_y = np.std(data_y, axis=0)
+    #     for k in range(self.num_harmonics2plot):
+    #         transWidget.removeItem(self.circ2[k])
+    #         self.circ2[k] = pg.QtGui.QGraphicsEllipseItem(mean_x[k] - self.threshold * sd_x[k], mean_y[k] - self.threshold * sd_y[k],
+    #                                                       2 * self.threshold * sd_x[k], 2 * self.threshold * sd_y[k])
+    #         self.circ2[k].setPen(pg.mkPen(self.color_lookup[k]))
+    #         transWidget.addItem(self.circ2[k])
+
+    # def _ellipses_clear(self, transWidget):
+    #     for k in range(self.num_harmonics2plot):
+    #         transWidget.removeItem(self.circ2[k]

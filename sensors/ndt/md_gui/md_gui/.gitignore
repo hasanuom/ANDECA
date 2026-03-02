@@ -1,0 +1,6 @@
+/data/
+/exports/
+/logfile/
+/venv/
+
+*.ini
