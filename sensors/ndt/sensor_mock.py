@@ -22,7 +22,7 @@ import pac_ids as ids
 def start_mock():
     # loop:// gives us a virtual cable – opening it twice yields two ends
     port = "loop://"  # pyserial built‑in virtual port
-    ser = serial.serial_for_url(port, baudrate=115200, timeout=0.1)
+    ser = serial.serial_for_url(port, baudrate=1000000, timeout=0.1)
     print("mock sensor listening on", port)
 
     def run():

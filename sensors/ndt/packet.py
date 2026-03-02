@@ -97,19 +97,31 @@ class Packet:
 import serial
 
 class PacketSerial:
-    def __init__(self, port: str, baudrate: int = 115200, timeout: float = 1.0) -> None:
+    def __init__(self, port: str, baudrate: int = 1000000, timeout: float = 1.0) -> None:
         self.ser = serial.Serial(port, baudrate, timeout=timeout)
 
     def send(self, pkt: Packet) -> None:
         self.ser.write(pkt.to_bytes())
 
     def receive(self) -> Optional[Packet]:
-        # read header first
+        # read header first; resynchronize if we read mid-stream by
+        # scanning for the 4-byte PAC_HEADER sequence.
         hdr = self.ser.read(4)
         if len(hdr) < 4:
             return None
         if hdr != PAC_HEADER:
-            raise ValueError("invalid header")
+            # slide window until we find the header or timeout
+            buf = bytearray(hdr)
+            while True:
+                b = self.ser.read(1)
+                if not b:
+                    # timeout / no more data
+                    return None
+                buf.pop(0)
+                buf.append(b[0])
+                if bytes(buf) == PAC_HEADER:
+                    hdr = bytes(buf)
+                    break
         # read fixed fields
         rest = self.ser.read(8)
         if len(rest) < 8:

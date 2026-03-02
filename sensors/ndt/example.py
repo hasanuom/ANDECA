@@ -5,7 +5,7 @@ from packet import Packet, PacketSerial, make_tx_config_payload
 
 def main():
     # open the serial port on the Pi (e.g. /dev/ttyS0 or /dev/serial0)
-    link = PacketSerial("/dev/ttyUSB0", baudrate=115200, timeout=0.5)
+    link = PacketSerial("/dev/ttyUSB0", baudrate=1000000, timeout=0.5)
 
     # create a TX configuration packet
     harmonics = [ (1000, 0.5, 0.0), (2000, 0.25, 1.57) ]

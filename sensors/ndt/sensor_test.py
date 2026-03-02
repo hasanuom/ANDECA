@@ -1,6 +1,6 @@
 """Command‑line tool for talking to the metal‑detector sensor.
 
-This script opens a serial port (default /dev/ttyUSB0 at 115200) and sends a
+This script opens a serial port (default /dev/ttyUSB0 at 1000000) and sends a
 series of requests to the device.  Received packets are interpreted using the
 logic in :mod:`pac_handlers` and printed as human‑readable summaries.
 
@@ -36,7 +36,7 @@ def send_and_print(link: PacketSerial, pkt: Packet) -> None:
 
 def main():
     port = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyUSB0"
-    link = PacketSerial(port, baudrate=115200, timeout=0.2)
+    link = PacketSerial(port, baudrate=1000000, timeout=0.2)
     print(f"opened {port}")
 
     seq = 1
