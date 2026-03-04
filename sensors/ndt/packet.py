@@ -11,7 +11,7 @@ from typing import Optional, List
 
 # Constants copied from the C code
 PAC_HEADER = bytes([0xDE, 0x7E, 0xC7, 0xED])
-PAC_PAYLOAD_NBYTES_MAX = 128  # adjust to the value in packet.h if different
+PAC_PAYLOAD_NBYTES_MAX = 6144  # from PAC_PAYLOAD_NBYTES_MAX in packet.h
 
 
 def _checksum(data: bytes) -> int:
