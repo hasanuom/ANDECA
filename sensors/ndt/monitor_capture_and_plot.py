@@ -16,6 +16,7 @@ import sys
 import time
 import struct
 import math
+import os
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -120,7 +121,19 @@ def main():
         return
 
     # write CSV
-    fname = args.output or f"harmonics_{args.port.replace('/','_')}_{int(start)}.csv"
+    # ensure output directory exists (all files go under readings/)
+    out_dir = "readings"
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+    except Exception:
+        pass
+
+    if args.output:
+        fname = os.path.join(out_dir, args.output)
+    else:
+        fname = os.path.join(out_dir,
+                             f"harmonics_{args.port.replace('/', '_')}_{int(start)}.csv")
+
     with open(fname, 'w', newline='') as f:
         w = csv.writer(f)
         w.writerow(['timestamp', 'pkt', 'real', 'imag', 'mag'])

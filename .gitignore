@@ -13,5 +13,4 @@ mav.parm
 mav.tlog.raw
 
 # NDT sensor readings
-mydata.csv
-out.csv
+readings/
