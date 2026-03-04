@@ -1,25 +1,37 @@
-"""Example showing how to send/receive packets over serial using packet.py."""
+"""Query firmware version.
+"""
 
-from packet import Packet, PacketSerial, make_tx_config_payload
+from packet import Packet, PacketSerial
+import pac_ids as ids
+import time
 
 
 def main():
-    # open the serial port on the Pi (e.g. /dev/ttyS0 or /dev/serial0)
     link = PacketSerial("/dev/ttyUSB0", baudrate=1000000, timeout=0.5)
-
-    # create a TX configuration packet
-    harmonics = [ (1000, 0.5, 0.0), (2000, 0.25, 1.57) ]
-    payload = make_tx_config_payload(enable_mask=0x0001, scale=0.75, harmonics=harmonics)
-    pkt = Packet(device_address=1, command=0x10, seq_num=1, payload=payload)
-
-    print("sending", pkt)
+    # Send GET for firmware version and then scan incoming packets for up to
+    # 3 seconds looking specifically for a firmware reply.
+    pkt = Packet(device_address=0, command=ids.GET_MASK | ids.PAC_ID_FW_VERS, seq_num=1)
+    print("Querying firmware version")
     link.send(pkt)
 
-    # wait for a reply
-    resp = link.receive()
-    if resp:
-        print("received reply", resp)
-        # further parsing of resp.payload as needed
+    deadline = time.time() + 3.0
+    found = False
+    while time.time() < deadline:
+        resp = link.receive()
+        if resp is None:
+            continue
+        # If this packet is the firmware response (strip GET/SET mask for safety)
+        if (resp.command & ~ids.GET_MASK) == ids.PAC_ID_FW_VERS:
+            try:
+                s = resp.payload.decode("ascii", errors="replace").strip()
+            except Exception as e:
+                s = f"<decode error: {e}>"
+            print(f"Firmware version: {s}")
+            found = True
+            break
+
+    if not found:
+        print("Firmware reply not seen within timeout (3s). Device may be streaming or not support PAC_ID_FW_VERS.)")
 
 
 if __name__ == "__main__":
