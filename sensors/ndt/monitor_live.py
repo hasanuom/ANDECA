@@ -2,7 +2,7 @@
 """Fast matplotlib magnitude live plotting with proper blitting.
 
 Usage:
-    python3 monitor_live_realimag_fast.py /dev/ttyUSB0 --baud 1000000 --harmonic 2
+    python3 monitor_live_realimag_fast.py --port /dev/ttyUSB0 --baud 1000000 --harmonic 2
 
 Single magnitude plot updated in real-time using matplotlib blitting
 (only changed artists redrawn). Zero lag, smooth updates.
@@ -181,7 +181,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Fast magnitude plotter with blitting."
     )
-    parser.add_argument("port", help="Serial port")
+    parser.add_argument("--port", type=str, default="/dev/ttyUSB0", help="Serial port")
     parser.add_argument("--baud", type=int, default=1000000, help="Baud rate")
     parser.add_argument("--harmonic", type=int, default=2, help="Harmonic to plot")
     parser.add_argument("--history", type=int, default=100,

@@ -2,7 +2,7 @@
 """Capture harmonics for a fixed duration, save CSV, and plot afterwards.
 
 Usage:
-    python3 monitor_capture_and_plot.py /dev/ttyUSB0 --baud 1000000 --harmonic 2 --duration 30
+    python3 monitor_capture_and_plot.py --baud 1000000 --harmonic 2 --duration 30
 
 The script enables streaming mode, collects data for the specified duration
 (seconds), writes a CSV file containing timestamp, packet count and the selected
@@ -44,7 +44,7 @@ def parse_harmonics(data):
 
 def main():
     parser = argparse.ArgumentParser(description="Capture harmonics to CSV then plot.")
-    parser.add_argument("port", help="Serial port")
+    parser.add_argument("--port", type=str, default="/dev/ttyUSB0", help="Serial port")
     parser.add_argument("--baud", type=int, default=1000000, help="Baud rate")
     parser.add_argument("--harmonic", type=int, default=2,
                         help="Harmonic index to save/plot")
