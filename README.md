@@ -7,6 +7,24 @@ This repository contains the flight control and mission logic for the ANDECA dro
 
 Follow these steps to set up the development environment on a fresh Raspberry Pi OS installation.
 
+### (Recommendation)
+Expand filesystem 
+
+- Open the terminal and type:
+`sudo raspi-config`
+
+- Use the arrow keys to select 6 Advanced Options.
+
+- Select A1 Expand Filesystem.
+
+- Hit Enter. You should see a message saying the partition will be resized upon reboot.
+
+- Select Finish and agree to Reboot.
+
+To make sure you aren't still cramped into a tiny partition, run
+`df -h`
+Look at the entry for /dev/root (or sometimes just /). You should see plenty of "Avail" space.
+
 ### 1. System Dependencies
 The Pi must be configured for UART communication and requires specific build tools for MAVLink.
 
@@ -77,7 +95,33 @@ mavproxy.py --master=/dev/ttyAMA0
 | **Pin 8** | TX | RX (Pin 3) |
 | **Pin 10** | RX | TX (Pin 2) |
 
+## Other things
 
+### To set the Pi to Read-only Mode
+
+1) Open your terminal and type: sudo raspi-config
+
+2) Navigate to Performance Options → Overlay File System.
+
+3) Select Yes to enable the overlay.
+
+4) Select Yes to write-protect the boot partition.
+
+5) Reboot.
+
+### Git
+
+Set details
+```
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+```
+Persist details (stores in plain text so not really safe)
+```
+git config --global credential.helper store
+```
+
+### DATED - NOT DOING ANYMORE:
 ## Headless Pi Networking Guide (University/eduroam)
 
 This guide outlines how to provide internet to a Raspberry Pi via a Windows laptop connected to a restricted network (like eduroam).
