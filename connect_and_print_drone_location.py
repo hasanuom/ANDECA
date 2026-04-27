@@ -18,6 +18,34 @@ MAVLINK_BAUD = 57600
 POSITION_RATE_HZ = 10
 
 
+def request_local_position_ned(master) -> None:
+	"""Request LOCAL_POSITION_NED using both legacy and modern MAVLink APIs."""
+	# Legacy stream request (works on many firmwares)
+	master.mav.request_data_stream_send(
+		master.target_system,
+		master.target_component,
+		mavutil.mavlink.MAV_DATA_STREAM_POSITION,
+		POSITION_RATE_HZ,
+		1,
+	)
+
+	# Direct message interval request for LOCAL_POSITION_NED (msg id 32)
+	interval_us = int(1_000_000 / POSITION_RATE_HZ)
+	master.mav.command_long_send(
+		master.target_system,
+		master.target_component,
+		mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+		0,
+		mavutil.mavlink.MAVLINK_MSG_ID_LOCAL_POSITION_NED,
+		interval_us,
+		0,
+		0,
+		0,
+		0,
+		0,
+	)
+
+
 def main() -> None:
 	print(f"Connecting to MAVLink at '{MAVLINK_CONNECTION}' ...")
 	try:
@@ -29,21 +57,24 @@ def main() -> None:
 
 	print(f"Heartbeat received from system {master.target_system}.")
 
-	# Ask ArduPilot/PX4 to stream position messages.
-	master.mav.request_data_stream_send(
-		master.target_system,
-		master.target_component,
-		mavutil.mavlink.MAV_DATA_STREAM_POSITION,
-		POSITION_RATE_HZ,
-		1,
-	)
+	request_local_position_ned(master)
 
 	print("Printing LOCAL_POSITION_NED (x, y, z) in meters. Press Ctrl+C to stop.")
+	print("If nothing prints, EKF likely has no valid local position yet.")
+
+	last_diag = time.time()
 
 	try:
 		while True:
 			msg = master.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=1)
 			if msg is None:
+				now = time.time()
+				if now - last_diag >= 3.0:
+					print(
+						"Waiting for LOCAL_POSITION_NED... "
+						"Check EKF status, GPS/vision availability, and that the vehicle is initialized."
+					)
+					last_diag = now
 				continue
 
 			print(f"x={msg.x: .3f} m, y={msg.y: .3f} m, z={msg.z: .3f} m")
