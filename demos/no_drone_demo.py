@@ -226,6 +226,55 @@ def _plot_heatmap(xs: list, ys: list, mags: list, csv_path: str) -> None:
         plt.close(fig)
 
 
+def _plot_harmonics_figure(harmonic_plot_records: list, csv_path: str) -> None:
+    if not harmonic_plot_records:
+        print("No harmonic records available for harmonics figure.")
+        return
+
+    sample_idx = [r[0] for r in harmonic_plot_records]
+    h0 = [r[1] for r in harmonic_plot_records]
+    h1 = [r[2] for r in harmonic_plot_records]
+    h2 = [r[3] for r in harmonic_plot_records]
+    h3 = [r[4] for r in harmonic_plot_records]
+
+    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+    axs[0, 0].plot(sample_idx, h0, '-')
+    axs[0, 0].set_title('Harmonic 0')
+    axs[0, 0].set_xlabel('sample #')
+    axs[0, 0].set_ylabel('magnitude')
+    axs[0, 0].grid(True)
+
+    axs[0, 1].plot(sample_idx, h1, '-')
+    axs[0, 1].set_title('Harmonic 1')
+    axs[0, 1].set_xlabel('sample #')
+    axs[0, 1].set_ylabel('magnitude')
+    axs[0, 1].grid(True)
+
+    axs[1, 0].plot(sample_idx, h2, '-')
+    axs[1, 0].set_title('Harmonic 2')
+    axs[1, 0].set_xlabel('sample #')
+    axs[1, 0].set_ylabel('magnitude')
+    axs[1, 0].grid(True)
+
+    axs[1, 1].plot(sample_idx, h3, '-')
+    axs[1, 1].set_title('Harmonic 3')
+    axs[1, 1].set_xlabel('sample #')
+    axs[1, 1].set_ylabel('magnitude')
+    axs[1, 1].grid(True)
+
+    fig.suptitle('Harmonics 0-3 Magnitude vs Sample #')
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    fig_path = os.path.splitext(csv_path)[0] + '_harmonics.png'
+    fig.savefig(fig_path, dpi=150, bbox_inches='tight')
+    print(f"Harmonics figure saved to {fig_path}")
+
+    if SHOW_INTERACTIVE_PLOT:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
 def _init_laser_sensor():
     try:
         import board  # type: ignore
@@ -289,6 +338,7 @@ def main() -> None:
     latest_laser_cm = None
     last_vicon_poll = 0.0
     records = []
+    harmonic_plot_records = []
     ndt_packet_count = 0
     harmonic_packet_count = 0
 
@@ -353,6 +403,12 @@ def main() -> None:
                 mag = harmonics[HARMONIC_IDX]['mag']
                 ts_str = datetime.now().isoformat()
 
+                h0 = harmonics[0]['mag'] if len(harmonics) > 0 else float('nan')
+                h1 = harmonics[1]['mag'] if len(harmonics) > 1 else float('nan')
+                h2 = harmonics[2]['mag'] if len(harmonics) > 2 else float('nan')
+                h3 = harmonics[3]['mag'] if len(harmonics) > 3 else float('nan')
+                sample_no = len(records) + 1
+
                 laser_text = '' if latest_laser_cm is None else f'{latest_laser_cm:.3f}'
                 writer.writerow(
                     [
@@ -365,6 +421,7 @@ def main() -> None:
                 )
 
                 records.append((latest_x, latest_y, mag))
+                harmonic_plot_records.append((sample_no, h0, h1, h2, h3))
                 print(
                     f"\rx={latest_x:7.3f} m  y={latest_y:7.3f} m  "
                     f"mag={mag:9.4f}  laser_cm={laser_text or 'n/a':>7}  "
@@ -387,6 +444,8 @@ def main() -> None:
         f"\nCapture complete. {len(records)} samples written to {csv_path} "
         f"(NDT packets={ndt_packet_count}, harmonic packets={harmonic_packet_count})."
     )
+
+    _plot_harmonics_figure(harmonic_plot_records, csv_path)
 
     if len(records) < 4:
         print("Not enough data to generate heatmap (< 4 samples).")
