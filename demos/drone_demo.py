@@ -66,7 +66,7 @@ NDT_PORT = '/dev/ttyUSB0'
 NDT_BAUD = 1000000
 HARMONIC_IDX = 2
 
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'readings')
+OUTPUT_DIR = '/media/andeca/ENUODA/readings/drone_demo'
 OUTPUT_CSV = None
 HEATMAP_RESOLUTION = 50
 SHOW_INTERACTIVE_PLOT = True

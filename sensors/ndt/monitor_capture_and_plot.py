@@ -24,6 +24,8 @@ import matplotlib.pyplot as plt
 from packet import PacketSerial, Packet
 from pac_ids import GET_MASK, SET_MASK, PAC_ID_HARMONICS_RX, PAC_ID_SETTINGS_STREAMING
 
+OUTPUT_DIR = "/media/andeca/ENUODA/readings/monitor_capture_and_plot"
+
 
 def parse_harmonics(data):
     n_floats = len(data) // 4
@@ -132,8 +134,8 @@ def main():
         return
 
     # write CSV
-    # ensure output directory exists (all files go under readings/)
-    out_dir = "readings"
+    # ensure output directory exists
+    out_dir = OUTPUT_DIR
     try:
         os.makedirs(out_dir, exist_ok=True)
     except Exception:

@@ -63,7 +63,7 @@ HARMONIC_IDX = 2
 VICON_POLL_INTERVAL_S = 0.05
 INCLUDE_ROTATION = False
 
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'readings')
+OUTPUT_DIR = '/media/andeca/ENUODA/readings/no_drone_demo'
 OUTPUT_CSV = None
 HEATMAP_RESOLUTION = 50
 SHOW_INTERACTIVE_PLOT = True
