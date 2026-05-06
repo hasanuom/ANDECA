@@ -215,6 +215,11 @@ def main():
 
     fig.suptitle(f"Harmonics 0-3 Magnitude vs Packet # (duration {args.duration}s)")
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    fig_name = os.path.join(out_dir, f"harmonics_plot_{int(start)}.png")
+    fig.savefig(fig_name, dpi=150, bbox_inches='tight')
+    print(f"Saved plot image to {fig_name}")
+
     plt.show()
 
 if __name__ == '__main__':
