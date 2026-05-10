@@ -314,6 +314,7 @@ def main() -> None:
     latest_laser_cm = None
     records = []
     harmonic_plot_records = []
+    harmonic_csv_rows = {0: [], 1: [], 2: [], 3: []}
 
     ndt_packet_count = 0
     position_msg_count = 0
@@ -387,6 +388,13 @@ def main() -> None:
                 h3 = harmonics[3]['mag'] if len(harmonics) > 3 else float('nan')
                 sample_no = len(records) + 1
 
+                for i in range(4):
+                    if i < len(harmonics):
+                        hi = harmonics[i]
+                        harmonic_csv_rows[i].append(
+                            (ts_str, sample_no, hi['real'], hi['imag'], hi['mag'])
+                        )
+
                 writer.writerow(
                     [
                         ts_str,
@@ -417,6 +425,15 @@ def main() -> None:
         f"(position_msgs={position_msg_count}, "
         f"NDT packets={ndt_packet_count}, harmonic packets={harmonic_packet_count})."
     )
+
+    base_no_ext = os.path.splitext(csv_path)[0]
+    for i in range(4):
+        h_path = f"{base_no_ext}_h{i}.csv"
+        with open(h_path, 'w', newline='') as hf:
+            hw = csv.writer(hf)
+            hw.writerow(['timestamp', 'pkt', 'real', 'imag', 'mag'])
+            hw.writerows(harmonic_csv_rows[i])
+        print(f"Saved {len(harmonic_csv_rows[i])} rows to {h_path}")
 
     _plot_harmonics_figure(harmonic_plot_records, csv_path)
 
