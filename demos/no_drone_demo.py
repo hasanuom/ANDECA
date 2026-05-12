@@ -19,6 +19,7 @@ import math
 import os
 import struct
 import sys
+import threading
 import time
 import uuid
 from datetime import datetime
@@ -62,6 +63,7 @@ HARMONIC_IDX = 2
 
 VICON_POLL_INTERVAL_S = 0.05
 INCLUDE_ROTATION = False
+PRINT_EVERY_N_SAMPLES = 10
 
 OUTPUT_DIR = '/media/andeca/ENUODA/readings/no_drone_demo'
 OUTPUT_CSV = None
@@ -292,6 +294,30 @@ def _init_laser_sensor():
         return None
 
 
+def _vicon_poll_worker(
+    client: ViconApiClient,
+    include_rotation: bool,
+    poll_interval_s: float,
+    stop_event: threading.Event,
+    latest_pose: Dict[str, Optional[float]],
+    pose_lock: threading.Lock,
+) -> None:
+    while not stop_event.is_set():
+        try:
+            vicon_resp = client.live_latest(include_rotation=include_rotation)
+            sample = vicon_resp.get('sample')
+            if sample is not None:
+                tx_mm = sample.get('tx_mm')
+                ty_mm = sample.get('ty_mm')
+                if tx_mm is not None and ty_mm is not None:
+                    with pose_lock:
+                        latest_pose['x'] = float(tx_mm) / 1000.0
+                        latest_pose['y'] = float(ty_mm) / 1000.0
+        except Exception:
+            pass
+        stop_event.wait(poll_interval_s)
+
+
 def main() -> None:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     if OUTPUT_CSV is None:
@@ -336,12 +362,28 @@ def main() -> None:
     latest_x = None
     latest_y = None
     latest_laser_cm = None
-    last_vicon_poll = 0.0
+    latest_pose: Dict[str, Optional[float]] = {'x': None, 'y': None}
+    pose_lock = threading.Lock()
+    vicon_stop_event = threading.Event()
+    vicon_thread = threading.Thread(
+        target=_vicon_poll_worker,
+        args=(
+            client,
+            INCLUDE_ROTATION,
+            VICON_POLL_INTERVAL_S,
+            vicon_stop_event,
+            latest_pose,
+            pose_lock,
+        ),
+        daemon=True,
+    )
+    vicon_thread.start()
     records = []
     harmonic_plot_records = []
     harmonic_csv_rows = {0: [], 1: [], 2: [], 3: []}
     ndt_packet_count = 0
     harmonic_packet_count = 0
+    dropped_packet_count = 0
 
     try:
         with open(csv_path, 'w', newline='') as fh:
@@ -357,21 +399,9 @@ def main() -> None:
             )
 
             while True:
-                now = time.time()
-
-                if (now - last_vicon_poll) >= VICON_POLL_INTERVAL_S:
-                    try:
-                        vicon_resp = client.live_latest(include_rotation=INCLUDE_ROTATION)
-                        sample = vicon_resp.get('sample')
-                        if sample is not None:
-                            tx_mm = sample.get('tx_mm')
-                            ty_mm = sample.get('ty_mm')
-                            if tx_mm is not None and ty_mm is not None:
-                                latest_x = float(tx_mm) / 1000.0
-                                latest_y = float(ty_mm) / 1000.0
-                    except Exception:
-                        pass
-                    last_vicon_poll = now
+                with pose_lock:
+                    latest_x = latest_pose['x']
+                    latest_y = latest_pose['y']
 
                 if vl53 is not None:
                     try:
@@ -381,7 +411,13 @@ def main() -> None:
                     except Exception:
                         pass
 
-                pkt = ps.receive()
+                try:
+                    pkt = ps.receive()
+                except ValueError:
+                    # Serial streams can contain occasional corrupt frames;
+                    # skip bad packets and continue capture.
+                    dropped_packet_count += 1
+                    continue
                 if pkt is None:
                     continue
 
@@ -430,17 +466,20 @@ def main() -> None:
 
                 records.append((latest_x, latest_y, mag))
                 harmonic_plot_records.append((sample_no, h0, h1, h2, h3))
-                print(
-                    f"\rx={latest_x:7.3f} m  y={latest_y:7.3f} m  "
-                    f"mag={mag:9.4f}  laser_cm={laser_text or 'n/a':>7}  "
-                    f"samples={len(records)}",
-                    end='',
-                    flush=True,
-                )
+                if sample_no == 1 or (sample_no % PRINT_EVERY_N_SAMPLES) == 0:
+                    print(
+                        f"\rx={latest_x:7.3f} m  y={latest_y:7.3f} m  "
+                        f"mag={mag:9.4f}  laser_cm={laser_text or 'n/a':>7}  "
+                        f"samples={len(records)}",
+                        end='',
+                        flush=True,
+                    )
 
     except KeyboardInterrupt:
         print("\nCapture stopped by user.")
     finally:
+        vicon_stop_event.set()
+        vicon_thread.join(timeout=1.0)
         _disable_streaming(ps)
         print("Sending Vicon STOP...")
         try:
@@ -450,7 +489,8 @@ def main() -> None:
 
     print(
         f"\nCapture complete. {len(records)} samples written to {csv_path} "
-        f"(NDT packets={ndt_packet_count}, harmonic packets={harmonic_packet_count})."
+        f"(NDT packets={ndt_packet_count}, harmonic packets={harmonic_packet_count}, "
+        f"dropped packets={dropped_packet_count})."
     )
 
     base_no_ext = os.path.splitext(csv_path)[0]
